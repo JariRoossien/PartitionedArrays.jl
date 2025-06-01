@@ -22,10 +22,12 @@ export build_p_matrix
 export ref_cg!
 export pc_setup
 export pc_solve!
+export ref_pipelined_cg!
 include("hpcg_utils.jl")
 include("compute_optimal_xyz.jl")
 include("sparse_matrix.jl")
 include("ref_cg.jl")
+include("pipelined_cg.jl")
 include("opt_cg.jl")
 include("report_results.jl")
 include("mg_preconditioner.jl")

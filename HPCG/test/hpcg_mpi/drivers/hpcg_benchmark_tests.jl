@@ -2,8 +2,8 @@ module HPCGMPITests
 
 using PartitionedArrays
 
-include(joinpath("..", "..", "hpcg_benchmark_tests.jl"))
+include(joinpath("..", "..", "hpcg_time_test.jl"))
 
-with_mpi(hpcg_benchmark_tests)
+with_mpi(perform_benchmarks)
 
 end # module
