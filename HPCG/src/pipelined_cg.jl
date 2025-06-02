@@ -59,30 +59,23 @@ function Base.iterate(it::PPCGIterable, iteration::Int = start(it))
 
     it.timing_data[1] += @elapsed begin
         if iteration == 0
-            # Initial setup:
-            # u₀ = M⁻¹r₀ (r₀ is already computed and stored in it.r)
+            # (r₀ is already computed and stored in it.r)
+            # u₀ = M⁻¹r₀
             ldiv!(it.u, it.Pl, it.r)
             # w₀ = A u₀
             mul!(it.w, it.A, it.u)
             
-            # p₀ = u₀
-            copyto!(it.p, it.u)
 
             # m₀ = M⁻¹w₀
             ldiv!(it.m, it.Pl, it.w)
-            # n₀ = A m₀
-            mul!(it.n, it.A, it.m)
-
-            # Initialize search directions q₀ and z₀
-            # q₀ = m₀
-            copyto!(it.q, it.m)
-            # z₀ = n₀
-            copyto!(it.z, it.n)
 
             # g₀ = (w₀, u₀)
             dot_wu = dot(it.w, it.u)
-            # d₀ = (m₀, w₀)  (Note: it.m is M⁻¹w₀)
+            # d₀ = (m₀, w₀) 
             dot_mw = dot(it.m, it.w)
+
+            # n₀ = A m₀
+            mul!(it.n, it.A, it.m)            
             
             it.g_prev = dot_wu
 
@@ -95,6 +88,14 @@ function Base.iterate(it::PPCGIterable, iteration::Int = start(it))
 
             a = it.a_prev # This is α₀
 
+            # Initialize q₀, z₀ and p₀
+            # q₀ = m₀
+            copyto!(it.q, it.m)
+            # z₀ = n₀
+            copyto!(it.z, it.n)
+            # p₀ = u₀
+            copyto!(it.p, it.u)
+
             # x₁ = x₀ + α₀ p₀
             @. it.x += a * it.p
             # u₁ = u₀ - α₀ q₀
@@ -104,18 +105,19 @@ function Base.iterate(it::PPCGIterable, iteration::Int = start(it))
         else
             # mᵢ = M⁻¹wᵢ 
             ldiv!(it.m, it.Pl, it.w)
-            # nᵢ = A mᵢ
-            mul!(it.n, it.A, it.m)
-            
+
             # gᵢ = (wᵢ, uᵢ) 
             dot_wu = dot(it.w, it.u)
             # dᵢ = (mᵢ, wᵢ)
             dot_mw = dot(it.m, it.w)
+            
+            # nᵢ = A mᵢ
+            mul!(it.n, it.A, it.m)
 
             # βᵢ = gᵢ / g_{i-1}
-            local b_i # Ensure b_i is defined
+            local b_i 
             if abs(it.g_prev) < eps_val
-                b_i = zero(num_type) # Avoid division by zero, implies breakdown or convergence
+                b_i = zero(num_type) # Avoid division by zero
             else
                 b_i = dot_wu / it.g_prev
             end
@@ -123,7 +125,7 @@ function Base.iterate(it::PPCGIterable, iteration::Int = start(it))
             # Denominator for αᵢ: dᵢ - βᵢ * gᵢ / α_{i-1}
             local a_i_denominator
             if abs(it.a_prev) < eps_val 
-                a_i_denominator = dot_mw # Or handle as breakdown
+                a_i_denominator = dot_mw 
             else
                 a_i_denominator = dot_mw - b_i * dot_wu / it.a_prev
             end
@@ -144,7 +146,6 @@ function Base.iterate(it::PPCGIterable, iteration::Int = start(it))
             # zᵢ = nᵢ + βᵢ z_{i-1}
             @. it.z = it.n + b_i * it.z
             
-            # Update solution and auxiliary vectors
             # x_{i+1} = xᵢ + αᵢ pᵢ
             @. it.x += a_i * it.p
             # u_{i+1} = uᵢ - αᵢ qᵢ
@@ -184,41 +185,35 @@ function ppcg_iterator!(x, A, b, timing_data, Pl = Identity();
     u = similar(x)
     w = similar(x)
     m = similar(x)
-    nvec = similar(x) # 'n' in PPCGIterable
+    n = similar(x) 
     z = similar(x)
     q = similar(x)
     p = similar(x)
 
     g_prev_init = zero(eltype(x))
-    a_prev_init = one(eltype(x)) # Using one to avoid potential 0/0 if g_prev_init was also 0 and used early.
+    a_prev_init = one(eltype(x)) # Using one to avoid potential 0/0
 
-    return PPCGIterable(Pl, A, x, b, r, u, w, m, nvec, z, q, p,
+    return PPCGIterable(Pl, A, x, b, r, u, w, m, n, z, q, p,
         g_prev_init, a_prev_init,
         tolerance, residual0, current_residual,
         maxiter, timing_data)
 end
 
 function ref_pipelined_cg!(x, A, b, timing_data;
-    tolerance::Float64 = 1e-6, # Default tolerance
+    tolerance::Float64 = 1e-6,
     maxiter::Int = size(A, 2),
     Pl = Identity())
 
-    if !(timing_data isa Vector{Float64}) || isempty(timing_data)
-        println("Warning: timing_data not properly initialized. Using default [0.0].")
-        timing_data = [0.0] 
-    else
-        timing_data[1] = 0.0 # Reset timer
-    end
+    timing_data[1] = 0.0
 
     iterable = ppcg_iterator!(x, A, b, timing_data, Pl;
         tolerance = tolerance, maxiter = maxiter)
     
     iters = 0
-    for res_norm in iterable # Iterate consumes the iterable
+    for res_norm in iterable
         iters += 1
     end
 
-    # Return final solution, timing data, initial residual, final residual, and iteration count
     return iterable.x, iterable.timing_data, iterable.residual0, iterable.residual, iters
 end
 
