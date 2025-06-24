@@ -2412,14 +2412,15 @@ function LinearAlgebra.mul!(c::PVector,a::PSparseMatrix,b::PVector)
     @boundscheck @assert matching_own_indices(axes(c,1),axes(a,1))
     @boundscheck @assert matching_own_indices(axes(a,2),axes(b,1))
     @boundscheck @assert matching_ghost_indices(axes(a,2),axes(b,1))
-    if ! a.assembled
+    if a.assembled
+        t = consistent!(b)
+        foreach(spmv!,own_values(c),own_own_values(a),own_values(b))
+        wait(t)
+        foreach(muladd!,own_values(c),own_ghost_values(a),ghost_values(b))
+    else
         @boundscheck @assert matching_ghost_indices(axes(a,1),axes(c,1))
-        return mul!(c,a,b,1,0)
+        mul!(c,a,b,one(eltype(a)),zero(eltype(a)))
     end
-    t = consistent!(b)
-    foreach(spmv!,own_values(c),own_own_values(a),own_values(b))
-    wait(t)
-    foreach(muladd!,own_values(c),own_ghost_values(a),ghost_values(b))
     c
 end
 

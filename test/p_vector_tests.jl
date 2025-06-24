@@ -90,6 +90,11 @@ function p_vector_tests(distribute)
     @test sqrt(a⋅a) ≈ norm(a)
     @test euclidean(a,a) + 1 ≈ 1
 
+    # Quick Test non_blocking_dot
+    setup = setup_non_blocking_dot(a,b)
+    t = non_blocking_dot(a,b,setup)
+    @test fetch(t) ≈ a⋅b
+
     n = 10
     parts = rank
     row_partition = map(parts) do part

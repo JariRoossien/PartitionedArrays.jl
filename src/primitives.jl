@@ -708,6 +708,24 @@ end
 #  b
 #end
 
+function non_blocking_reduction(op,a,setup= setup_non_blocking_reduction(a);destination=MAIN,kwargs...)
+    non_blocking_reduction_impl(op,a,setup,destination;kwargs...)
+end
+
+function setup_non_blocking_reduction(a)
+    setup_non_blocking_reduction_impl(a,eltype(a))
+end
+
+function setup_non_blocking_reduction_impl(a::AbstractArray, ::Type{T}) where T
+    return nothing
+end
+
+function non_blocking_reduction_impl(op, a::AbstractArray, setup, destination=:all; init=nothing)
+    @fake_async begin
+        reduction_impl(op, a, destination; init=init)
+    end
+end
+
 """
     struct ExchangeGraph{A}
 

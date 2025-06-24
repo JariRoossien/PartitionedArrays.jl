@@ -1,17 +1,27 @@
+function identity_solver_step(x,workspace,b,phase=:start;kwargs...)
+    if isa(b,PVector)
+        foreach(copyto!,own_values(x),own_values(b))
+    else
+        copyto!(x,b)
+    end
+    phase = :stop
+    x,workspace,phase
+end
+
+function identity_solver_update(workspace,A)
+    workspace
+end
 
 function identity_solver(p)
     @assert uses_mutable_types(p)
     workspace = nothing
-    function update(workspace,A)
-        workspace
-    end
-    function step(x,workspace,b,phase=:start;kwargs...)
-        copyto!(x,b)
-        phase = :stop
-        x,workspace,phase
-    end
     uses_initial_guess = Val(false)
-    linear_solver(update,step,p,uses_initial_guess)
+    workspace = nothing
+    linear_solver(identity_solver_update,identity_solver_step,p,workspace;uses_initial_guess)
+end
+
+function is_identity_solver(s)
+    s.step == identity_solver_step
 end
 
 function jacobi_correction(p)

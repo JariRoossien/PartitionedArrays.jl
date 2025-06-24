@@ -1191,6 +1191,22 @@ function LinearAlgebra.dot(a::PVector,b::PVector)
     sum(c)
 end
 
+function setup_non_blocking_dot(a::PVector, b::PVector)
+    partials = map(own_values(a), own_values(b)) do mya, myb
+        zero(eltype(mya)) + zero(eltype(myb))
+    end
+    setup_non_blocking_reduction(partials)
+end
+
+function non_blocking_dot(a::PVector, b::PVector, setup)
+    partials = map(dot, own_values(a), own_values(b))
+    t = non_blocking_reduction(+, partials, setup, destination=:all, init=zero(eltype(a)) + zero(eltype(b)))
+    @fake_async begin
+        getany(fetch(t))
+    end
+end
+
+
 function LinearAlgebra.rmul!(a::PVector,v::Number)
     map(partition(a)) do l
         rmul!(l,v)
@@ -1524,13 +1540,44 @@ function renumber(a::PVector,row_partition_2;renumber_local_indices=Val(true))
     PVector(values,row_partition_2)
 end
 
+
 function LinearAlgebra.axpy!(a::Number,x::PVector,y::PVector)
-    y .+= a .* x
+    #y .+= a .* x
+    function axpy_local!(x,y)
+        ni = length(y)
+        @boundscheck @assert length(x) == ni
+        for i in 1:ni
+            @inbounds y[i] += a * x[i]
+        end
+    end
+    function axpy_local!(x::Vector,y::Vector)
+        ni = length(y)
+        @boundscheck @assert length(x) == ni
+        @simd for i in 1:ni
+            @inbounds y[i] += a * x[i]
+        end
+    end
+    foreach(axpy_local!,own_values(x),own_values(y))
     y
 end
 
 function LinearAlgebra.axpby!(a::Number,x::PVector,b::Number,y::PVector)
-    y .= a .* x .+ b .* y
+    #y .= a .* x .+ b .* y
+    function axpby_local!(x,y)
+        ni = length(y)
+        @boundscheck @assert length(x) == ni
+        for i in 1:ni
+            @inbounds y[i] = a * x[i] + b * y[i]
+        end
+    end
+    function axpby_local!(x::Vector,y::Vector)
+        ni = length(y)
+        @boundscheck @assert length(x) == ni
+        @simd for i in 1:ni
+            @inbounds y[i] = a * x[i] + b * y[i]
+        end
+    end
+    foreach(axpby_local!,own_values(x),own_values(y))
     y
 end
 

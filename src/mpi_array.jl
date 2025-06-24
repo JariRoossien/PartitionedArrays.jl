@@ -500,6 +500,38 @@ function reduction_impl(op,a::MPIArray,destination;init=nothing)
     MPIArray(b_item,comm,size(a))
 end
 
+function setup_non_blocking_reduction_impl(a::MPIArray, ::Type{T}) where T
+    request = MPI.UnsafeRequest()  # Single reduction request
+    buffer = Ref{T}()
+    return (request = request, recvbuf = buffer)
+end
+
+function non_blocking_reduction_impl(op, a::MPIArray, setup, destination=:all; init=nothing)
+    @assert destination === :all
+    T = eltype(a)
+    comm = a.comm
+    opr = MPI.Op(op, T)
+
+    sendbuf = Ref(a.item)
+    recvbuf = setup.recvbuf
+    request = setup.request
+    rbuf = MPI.RBuffer(sendbuf, recvbuf)
+
+    state = (sendbuf, recvbuf, request)
+    
+    GC.@preserve state MPI.API.MPI_Iallreduce(rbuf.senddata, rbuf.recvdata, rbuf.count, rbuf.datatype, opr, comm, request)
+
+
+    @fake_async begin
+        GC.@preserve state MPI.Wait(request)
+        b_item = recvbuf[]
+        if init !== nothing
+            b_item = op(b_item,init)
+        end
+        MPIArray(b_item,comm,size(a))
+    end  
+end
+
 function Base.reduce(op,a::MPIArray;kwargs...)
    r = reduction(op,a;destination=:all,kwargs...)
    r.item

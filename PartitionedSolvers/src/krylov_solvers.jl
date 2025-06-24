@@ -197,7 +197,7 @@ function cg_update(ws,A)
     update(ws;iteration,Pl,A)
 end
 
-function cg_step(x,ws,b,phase=:start;kwargs...)
+function cg_step(x,ws,b,phase=:start;zero_guess=false,kwargs...)
     (;dx,r,u,A,ρ,iteration,current,target) = ws.state
     (;reltol,abstol,norm,Pl) = ws.options
     s = u
@@ -205,12 +205,14 @@ function cg_step(x,ws,b,phase=:start;kwargs...)
         iteration = 0
         phase = :advance
         copyto!(r,b)
-        mul!(s,A,x)
-        axpy!(-one(eltype(s)),s,r)
-        #r .-= s
+        if ! zero_guess
+            mul!(s,A,x)
+            axpy!(-one(eltype(s)),s,r)
+            #r .-= s
+        end
         current = norm(r)
         target = max(reltol*current,abstol)
-        dx .= zero(eltype(dx))
+        fill!(dx,zero(eltype(dx)))
         ρ = one(eltype(x))
         ws = update(ws;iteration,ρ,current,target)
         print_progress_header(ws)
@@ -228,7 +230,6 @@ function cg_step(x,ws,b,phase=:start;kwargs...)
     #x .+= α .* dx
     axpy!(-α,s,r)
     #r .-= α .* s
-    current = norm(r)
     iteration += 1
     current = norm(r)
     ws = update(ws;iteration,ρ,current)

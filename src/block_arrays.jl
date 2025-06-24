@@ -120,7 +120,13 @@ function Base.show(io::IO,k::MIME"text/plain",data::BArray)
         tcb =Tuple(cb)
         b = map(i->"$i, ",collect(tcb))
         b[end] = string(tcb[end])
-        println(io,"$(t) Block($(join(b))) = $(blocks(data)[cb])")
+        bi = blocks(data)[cb]
+        si = if isa(bi,PVector) || isa(bi,PSparseMatrix)
+            "$(bi)"
+        else
+            "$(typeof(bi))(…)"
+        end
+        println(io,"$(t) Block($(join(b))) = $(si)")
     end
 end
 function Base.show(io::IO,data::BArray)

@@ -10,6 +10,7 @@ import MPI
 import IterativeSolvers
 import Distances
 using BlockArrays
+using Adapt
 
 export length_to_ptrs!
 export rewind_ptrs!
@@ -54,6 +55,8 @@ export exchange
 export exchange!
 export allocate_exchange
 export find_rcv_ids_gather_scatter
+export setup_non_blocking_reduction
+export non_blocking_reduction
 include("primitives.jl")
 
 export DebugArray
@@ -143,6 +146,8 @@ export SplitVector
 export split_vector
 export split_vector_blocks
 export pvector_from_split_blocks
+export setup_non_blocking_dot
+export non_blocking_dot
 include("p_vector.jl")
 
 export SplitMatrix
@@ -195,4 +200,5 @@ export nullspace_linear_elasticity!
 export near_nullspace_linear_elasticity
 include("gallery.jl")
 
+include("adapt.jl")
 end # module
