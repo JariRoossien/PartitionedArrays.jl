@@ -20,7 +20,8 @@ function perform_benchmarks(distribute_func)
     elseif nprocs == 4; px,py,pz = (2,2,1)
     elseif nprocs == 8; px,py,pz = (2,2,2) 
     elseif nprocs > 0; px,py,pz = (nprocs,1,1);
-
+    end
+    
     px = nprocs; py = 1; pz = 1;
 
     local_nx, local_ny, local_nz = 0,0,0

@@ -4,7 +4,6 @@
 # --- Required Packages ---
 using MPI
 using PartitionedArrays
-# using PartitionedArrays.FEM # Removed as FEM is not found as a direct submodule in this context
 using SparseArrays # For local sparse matrix construction if needed
 using LinearAlgebra # For norm, dot - Identity should come from HPCG
 
@@ -13,21 +12,12 @@ using LinearAlgebra # For norm, dot - Identity should come from HPCG
 # or Pkg.develop'd
 using HPCG
 
-# --- Function containing the core benchmark logic ---
 function perform_benchmarks(distribute_func)
-    # MPI is initialized by with_mpi.
-    # We can get comm, rank, and nprocs directly from MPI API.
+
     comm = MPI.COMM_WORLD
     rank_0_idx = MPI.Comm_rank(comm) # 0-indexed
     nprocs = MPI.Comm_size(comm)
 
-    # --- Problem Setup ---
-    N_global_dim = 100 # Example: 100x100 grid for Laplacian
-    # N_global = N_global_dim * N_global_dim # Total number of unknowns
-
-    # 1. Create a PData object representing the 1D distribution of processes
-    # This is the pattern like `ranks = distribute(LinearIndices((np,)))`
-    # `distribute_func` is the function passed by `with_mpi`.
     process_layout_pdata = distribute_func(LinearIndices((nprocs,)))
 
     # 2. Create distributed matrix A

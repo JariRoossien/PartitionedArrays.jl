@@ -3,9 +3,8 @@ import LinearAlgebra: mul!, dot, norm, ldiv!
 # Identity preconditioner fallback
 struct Identity end
 
-# Define how ldiv! (M^{-1} * v) works for the Identity preconditioner
 LinearAlgebra.ldiv!(dst::AbstractVector, ::Identity, src::AbstractVector) = copyto!(dst, src)
-LinearAlgebra.ldiv!(::Identity, src::AbstractVector) = copy(src) # for out-of-place
+LinearAlgebra.ldiv!(::Identity, src::AbstractVector) = copy(src)
 
 
 mutable struct PPCGIterable{precT, matT, solT, vecT, numT <: Real}
@@ -27,7 +26,7 @@ mutable struct PPCGIterable{precT, matT, solT, vecT, numT <: Real}
     residual0::numT   # Initial residual norm
     residual::numT    # Current residual norm
     maxiter::Int      # Maximum number of iterations
-    timing_data::Vector{Float64} # For timing
+    timing_data::Vector{Float64} # timing
 end
 
 @inline function converged(it::PPCGIterable)
