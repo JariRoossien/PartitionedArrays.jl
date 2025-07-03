@@ -116,7 +116,7 @@ function Base.iterate(it::PPCGIterable, iteration::Int = start(it))
             # w₁ = w₀ - α₀ z₀
             @. it.w -= a * it.z
         else
-            # mᵢ = M⁻¹wᵢ (do this first!)
+            # mᵢ = M⁻¹wᵢ 
             ldiv!(it.m, it.Pl, it.w)
             
             # Start non-blocking dot products for the current iteration
