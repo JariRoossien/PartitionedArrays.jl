@@ -15,7 +15,7 @@ by overlapping communication with computation.
 """
 
 using Pkg
-Pkg.activate("..")
+Pkg.activate(".")
 
 using LinearAlgebra
 using SparseArrays
