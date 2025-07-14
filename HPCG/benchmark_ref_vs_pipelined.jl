@@ -53,7 +53,7 @@ function hpcg_ref_cg_wrapper!(x, A, b, nprocs; tolerance=1e-9, maxiter=1000)
         println("    Reference CG internal time: $(internal_time)s")
     end
     
-    return x_final, residual0, residual_final, iters
+    return x_final, residual0, residual_final, iters, internal_time
 end
 
 """
@@ -82,7 +82,7 @@ function pipelined_cg_non_blocking_wrapper!(x, A, b, nprocs; tolerance=1e-6, max
     # Debug: Verify the computation actually happened
     final_residual_check = norm(b - A * x_final)
     
-    return x_final, residual0, residual_final, iters
+    return x_final, residual0, residual_final, iters, internal_time
 end
 
 """
@@ -111,7 +111,7 @@ function pipelined_cg_blocking_wrapper!(x, A, b, nprocs; tolerance=1e-6, maxiter
     # Debug: Verify the computation actually happened
     final_residual_check = norm(b - A * x_final)
     
-    return x_final, residual0, residual_final, iters
+    return x_final, residual0, residual_final, iters, internal_time
 end
 
 
@@ -303,12 +303,11 @@ function benchmark_cg_algorithm(alg_name::String, solver_func, A, b, x0, nprocs;
         start_time = MPI.Wtime()
         
         try
-            x_final, residual0, residual_final, iters = solver_func(x_copy, A_run, b_run, nprocs;
+            x_final, residual0, residual_final, iters, internal_time = solver_func(x_copy, A_run, b_run, nprocs;
                                                                     tolerance=tolerance, maxiter=maxiter)
             
             # Synchronize all processes after computation
             MPI.Barrier(comm)
-            end_time = MPI.Wtime()
             
             # Validate results
             if rank == 0 && i == 1
@@ -320,7 +319,7 @@ function benchmark_cg_algorithm(alg_name::String, solver_func, A, b, x0, nprocs;
                 
             end
             
-            push!(times, end_time - start_time)
+            push!(times, internal_time)
             push!(iterations, iters)
             push!(residuals, residual_final)
             if i == runs # Save last solution

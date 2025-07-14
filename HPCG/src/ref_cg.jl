@@ -56,7 +56,7 @@ function iterate(it::PCGIterable, iteration::Int = start(it))
         it.timing_data[3] += @elapsed it.u .= it.c .+ β .* it.u
 
         # c = A * u
-        it.timing_data[4] += @elapsed mul_no_lat!(it.c, it.A, it.u)
+        it.timing_data[4] += @elapsed mul!(it.c, it.A, it.u)
         it.timing_data[2] += @elapsed uc = dot(it.u, it.c)
         α = it.ρ / uc
 
